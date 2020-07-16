@@ -15,6 +15,7 @@ namespace AirMonitor
         public static string AirlyApiUrl { get; private set; }
         public static string AirlyApiMeasurementUrl { get; private set; }
         public static string AirlyApiInstallationUrl { get; private set; }
+        public static object DbHelper { get; internal set; }
 
         public App()
         {
