@@ -12,6 +12,7 @@ using Xamarin.Forms;
 using Xamarin.Essentials;
 using System.Globalization;
 using System.Web;
+using Xamarin.Forms.Maps;
 
 namespace AirMonitor.ViewModels
 {
@@ -35,16 +36,31 @@ namespace AirMonitor.ViewModels
             IsBusy = false;
         }
 
-        private async Task LoadData(bool forceRefresh)
+        private async Task LoadData( bool forceRefresh)
         {
-            var location = await GetLocation();
             var data = await Task.Run(async () =>
             {
+                var location = await GetLocation();
                 var installations = await GetInstallations(location, forceRefresh, maxResults: 3);
                 return await GetMeasurementsForInstallations(installations, forceRefresh);
             });
-
             Items = new List<Measurement>(data);
+
+            Locations = Items.Select(i => new MapLocation
+            {
+                Address = i.Installation.Address.Description,
+                Description = "CAQI: " + i.CurrentDisplayValue,
+                Position = new Position(i.Installation.Location.Latitude, i.Installation.Location.Longitude)
+            }).ToList();
+        }
+
+        private ICommand _infoWindowClicked;
+        public ICommand InfoWindowClickedCommand => _infoWindowClicked ?? (_infoWindowClicked = new Command<String>(OnInfoWindowClicked));
+
+        private void OnInfoWindowClicked(String address)
+        {
+            Measurement item = Items.First<Measurement>(i => i.Installation.Address.Description.Equals(address));
+            OnGoToDetails(item);
         }
 
         private ICommand _goToDetailsCommand;
@@ -65,6 +81,13 @@ namespace AirMonitor.ViewModels
             await LoadData(true);
 
             IsRefreshing = false;
+        }
+
+        private List<MapLocation> _locations;
+        public List<MapLocation> Locations
+        {
+            get => _locations;
+            set => SetProperty(ref _locations, value);
         }
 
         private List<Measurement> _items;
